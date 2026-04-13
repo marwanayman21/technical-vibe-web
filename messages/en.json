@@ -1,0 +1,77 @@
+{
+  "Navigation": {
+    "home": "Home",
+    "about": "About Us",
+    "services": "Services",
+    "portfolio": "Portfolio",
+    "contact": "Contact"
+  },
+  "Hero": {
+    "title": "Welcome to",
+    "subtitle": "We craft cutting-edge digital experiences — from stunning websites to powerful mobile applications. Your vision, our code.",
+    "cta": "Explore Our Work",
+    "ctaSecondary": "Get In Touch"
+  },
+  "About": {
+    "badge": "Who We Are",
+    "title": "Building the Future, One Line of Code at a Time",
+    "description": "Technical Vibe is a passionate software development company dedicated to transforming ideas into powerful digital solutions. We specialize in building custom web applications, mobile apps, and enterprise software that drive growth and innovation.",
+    "description2": "With a team of skilled developers and designers, we combine creativity with technical expertise to deliver products that not only look amazing but perform flawlessly.",
+    "yearsExp": "Years Experience",
+    "projects": "Projects Delivered",
+    "clients": "Happy Clients",
+    "technologies": "Technologies Used"
+  },
+  "Services": {
+    "badge": "What We Do",
+    "title": "Our Services",
+    "subtitle": "We offer a comprehensive range of software development services to help businesses thrive in the digital age.",
+    "webDev": "Web Development",
+    "webDevDesc": "Building responsive, high-performance websites and web applications using the latest frameworks like React, Next.js, and Angular.",
+    "mobileDev": "Mobile Development",
+    "mobileDevDesc": "Creating native and cross-platform mobile applications for iOS and Android using Flutter, React Native, and native SDKs.",
+    "uiux": "UI/UX Design",
+    "uiuxDesc": "Designing intuitive, beautiful user interfaces with a focus on user experience that keeps customers engaged.",
+    "backend": "Backend & APIs",
+    "backendDesc": "Developing robust backend systems, RESTful APIs, and microservices using .NET, Node.js, and cloud platforms.",
+    "consulting": "Technical Consulting",
+    "consultingDesc": "Providing expert guidance on architecture, technology selection, and digital transformation strategies.",
+    "maintenance": "Support & Maintenance",
+    "maintenanceDesc": "Offering ongoing support, monitoring, and maintenance to ensure your applications run smoothly 24/7."
+  },
+  "Portfolio": {
+    "badge": "Our Work",
+    "title": "Featured Projects",
+    "subtitle": "A showcase of our recent work. Each project represents our commitment to quality and innovation.",
+    "viewProject": "View Project",
+    "viewAll": "View All Projects"
+  },
+  "Contact": {
+    "badge": "Get In Touch",
+    "title": "Let's Build Something Amazing Together",
+    "subtitle": "Have a project in mind? We'd love to hear about it. Send us a message and let's start the conversation.",
+    "name": "Your Name",
+    "email": "Your Email",
+    "message": "Your Message",
+    "send": "Send Message",
+    "phone": "Phone",
+    "emailLabel": "Email",
+    "location": "Location",
+    "locationValue": "Cairo, Egypt"
+  },
+  "Testimonials": {
+    "badge": "Customer opinions",
+    "title": "What Our Clients Say",
+    "subtitle": "Discover why businesses trust Technical Vibe for their digital transformation.",
+    "submit": "Submit Review",
+    "placeholderName": "Your Name",
+    "placeholderMsg": "Share your experience with us..."
+  },
+  "Footer": {
+    "description": "Transforming ideas into powerful digital solutions. Let's build the future together.",
+    "quickLinks": "Quick Links",
+    "contactInfo": "Contact Info",
+    "followUs": "Follow Us",
+    "rights": "All rights reserved."
+  }
+}
