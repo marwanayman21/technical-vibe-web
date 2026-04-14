@@ -7,7 +7,9 @@ import styles from './Portfolio.module.css';
 export interface PortfolioItem {
   id: string;
   title: string;
+  titleAr?: string;
   description: string;
+  descriptionAr?: string;
   imageUrl: string;
   link: string;
   tags: string[];
@@ -17,11 +19,15 @@ interface PortfolioProps {
   badge: string;
   title: string;
   subtitle: string;
-  viewProjectText: string;
+  tryDemoText: string;
+  viewDetailsText: string;
   items: PortfolioItem[];
+  locale?: string;
 }
 
-export default function Portfolio({badge, title, subtitle, viewProjectText, items}: PortfolioProps) {
+export default function Portfolio({badge, title, subtitle, tryDemoText, viewDetailsText, items, locale}: PortfolioProps) {
+  const isAr = locale === 'ar';
+
   return (
     <section id="portfolio" className={styles.section}>
       <div className={styles.container}>
@@ -62,13 +68,18 @@ export default function Portfolio({badge, title, subtitle, viewProjectText, item
                       rel="noopener noreferrer"
                       className={styles.viewBtn}
                     >
-                      {viewProjectText} →
+                      {tryDemoText}
                     </a>
                   </div>
                 </div>
                 <div className={styles.cardBody}>
-                  <h3 className={styles.cardTitle}>{item.title}</h3>
-                  <p className={styles.cardDesc}>{item.description}</p>
+                  <h3 className={styles.cardTitle}>{(isAr && item.titleAr) ? item.titleAr : item.title}</h3>
+                  <p className={styles.cardDesc}>{(isAr && item.descriptionAr) ? item.descriptionAr : item.description}</p>
+                  <div className={styles.cardActions}>
+                    <a href={`/${locale}/projects/${item.id}`} className={styles.detailsBtn}>
+                      {viewDetailsText}
+                    </a>
+                  </div>
                   <div className={styles.tags}>
                     {item.tags.map((tag) => (
                       <span key={tag} className={styles.tag}>{tag}</span>

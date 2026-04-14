@@ -163,4 +163,24 @@
   .mobileMenu {
     display: flex;
   }
+
+  .langBtn {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.8rem;
+    border-radius: 12px;
+  }
+  
+  .actions {
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .brandName {
+    font-size: 1.1rem;
+  }
+  
+  .logoImg {
+    height: 32px;
+  }
 }

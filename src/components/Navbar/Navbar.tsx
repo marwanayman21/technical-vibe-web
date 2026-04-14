@@ -6,7 +6,7 @@ import {useState} from 'react';
 import {motion, AnimatePresence} from 'framer-motion';
 import styles from './Navbar.module.css';
 
-export default function Navbar() {
+export default function Navbar({logoUrl, siteName}: {logoUrl?: string; siteName?: string}) {
   const t = useTranslations('Navigation');
   const locale = useLocale();
   const router = useRouter();
@@ -30,8 +30,8 @@ export default function Navbar() {
     <>
       <header className={styles.header}>
         <Link href="/" className={styles.logo}>
-          <img src="/logo.png" alt="Technical Vibe Logo" className={styles.logoImg} />
-          <span className={styles.brandName}>Technical Vibe</span>
+          <img src={logoUrl || "/logo.png"} alt={`${siteName || 'Technical Vibe'} Logo`} className={styles.logoImg} />
+          <span className={styles.brandName}>{siteName || 'Technical Vibe'}</span>
         </Link>
         
         <nav className={styles.nav}>

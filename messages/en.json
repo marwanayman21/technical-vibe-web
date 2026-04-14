@@ -44,6 +44,8 @@
     "title": "Featured Projects",
     "subtitle": "A showcase of our recent work. Each project represents our commitment to quality and innovation.",
     "viewProject": "View Project",
+    "viewDetails": "Project Details",
+    "tryDemo": "Try Demo",
     "viewAll": "View All Projects"
   },
   "Contact": {
@@ -63,6 +65,7 @@
     "badge": "Customer opinions",
     "title": "What Our Clients Say",
     "subtitle": "Discover why businesses trust Technical Vibe for their digital transformation.",
+    "formTitle": "Leave a Review",
     "submit": "Submit Review",
     "placeholderName": "Your Name",
     "placeholderMsg": "Share your experience with us..."
@@ -73,5 +76,12 @@
     "contactInfo": "Contact Info",
     "followUs": "Follow Us",
     "rights": "All rights reserved."
+  },
+  "ProjectDetails": {
+    "gallery": "Project Gallery",
+    "about": "About Project",
+    "technologies": "Technologies Used",
+    "back": "Back to Portfolio",
+    "viewDemo": "View Live Demo"
   }
 }

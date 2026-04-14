@@ -73,11 +73,40 @@
 }
 
 .sidebarLogo {
-  font-size: 2rem;
-  font-weight: 900;
-  color: var(--primary);
-  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
   margin-bottom: 3rem;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  width: 100%;
+}
+
+.logoImg {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+}
+
+.logoPlaceholder {
+  height: 40px;
+  width: 40px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
+}
+
+.brandName {
+  font-size: 1.3rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  white-space: nowrap;
 }
 
 .sidebarNav {
@@ -152,6 +181,12 @@
   color: var(--accent);
   opacity: 0.6;
   margin-top: 0.3rem;
+}
+
+.tabActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.5rem;
 }
 
 .addBtn {
@@ -498,13 +533,16 @@
 
 /* Messages */
 .messagesContainer {
-  display: grid;
-  grid-template-columns: 350px 1fr;
+  display: flex;
   gap: 2rem;
   height: calc(100vh - 180px);
+  position: relative;
+  overflow: hidden;
 }
 
 .messagesList {
+  width: 350px;
+  flex-shrink: 0;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border-color);
   border-radius: 16px;
@@ -557,6 +595,7 @@
 }
 
 .msgDetail {
+  flex: 1;
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 20px;
@@ -623,16 +662,78 @@
 @media (max-width: 1024px) {
   .messagesContainer {
     grid-template-columns: 1fr;
+    position: relative;
+    overflow: hidden;
   }
+  
+  .messagesList {
+    width: 100%;
+    display: block;
+  }
+
   .msgDetail {
-    display: none; /* In multi-tab, simpler to hide on small screens or stack */
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    z-index: 10;
+    transform: translateX(100%);
+    transition: transform 0.3s ease, visibility 0.3s;
+    background: var(--card-bg);
+    visibility: hidden;
+  }
+
+  .showDetail .msgDetail {
+    transform: translateX(0);
+    visibility: visible;
+  }
+
+  .showDetail .messagesList {
+    display: none;
+  }
+}
+
+.backBtn {
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 0;
+  color: var(--primary);
+  background: transparent;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 1024px) {
+  .backBtn {
+    display: flex;
   }
 }
 
 @media (max-width: 768px) {
   .sidebar {
-    display: none;
+    position: fixed;
+    left: -250px;
+    top: 0;
+    bottom: 0;
+    z-index: 3000;
+    transition: left 0.3s ease;
+    background: #0d1117;
   }
+
+  .open {
+    left: 0;
+  }
+
+  .sidebarOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2999;
+    backdrop-filter: blur(4px);
+  }
+
   .main {
     padding: 1.5rem;
   }
@@ -643,6 +744,23 @@
   }
   .editorGrid {
     grid-template-columns: 1fr;
+  }
+}
+
+.mobileMenuBtn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .mobileMenuBtn {
+    display: block;
+    margin-right: 1rem;
   }
 }
 
@@ -825,14 +943,73 @@
   background: rgba(255, 80, 80, 0.1);
 }
 
-.reviewMessage {
-  font-size: 0.95rem;
-  color: var(--accent);
-  line-height: 1.6;
+.reviewsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
 }
 
-.reviewDate {
-  font-size: 0.8rem;
-  opacity: 0.4;
-  margin-top: auto;
+@media (max-width: 480px) {
+  .reviewsGrid {
+    grid-template-columns: 1fr;
+  }
 }
+
+
+/* Gallery Management */
+.galleryUploadGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.galleryPreviewItem {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.galleryPreviewImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.removeImgBtn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: rgba(255, 80, 80, 0.8);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.galleryAddBtn {
+  aspect-ratio: 1;
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--accent);
+  transition: border-color 0.2s;
+}
+
+.galleryAddBtn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+

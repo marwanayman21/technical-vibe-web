@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, updateDoc, serverTimestamp, getDoc } from "firebase/firestore";
 
 // ... existing code ...
 
@@ -94,8 +94,11 @@ function getServerApp() {
 export interface PortfolioItem {
   id: string;
   title: string;
+  titleAr?: string;
   description: string;
+  descriptionAr?: string;
   imageUrl: string;
+  galleryImages?: string[];
   link: string;
   tags: string[];
   order?: number;
@@ -120,18 +123,71 @@ export interface ServiceItem {
 }
 
 export interface SiteContent {
-  hero: { title: string; subtitle: string; cta: string; ctaSecondary: string };
-  about: { badge: string; title: string; description: string; description2: string };
-  services: { badge: string; title: string; subtitle: string };
-  contact: { badge: string; title: string; subtitle: string };
-  footer: { description: string; rights: string };
+  hero: { 
+    title: string; 
+    titleAr?: string;
+    subtitle: string; 
+    subtitleAr?: string;
+    cta: string; 
+    ctaAr?: string;
+    ctaSecondary: string; 
+    ctaSecondaryAr?: string;
+  };
+  about: { 
+    badge: string; 
+    badgeAr?: string;
+    title: string; 
+    titleAr?: string;
+    description: string; 
+    descriptionAr?: string;
+    description2: string; 
+    description2Ar?: string;
+  };
+  services: { 
+    badge: string; 
+    badgeAr?: string;
+    title: string; 
+    titleAr?: string;
+    subtitle: string; 
+    subtitleAr?: string;
+  };
+  contact: { 
+    badge: string; 
+    badgeAr?: string;
+    title: string; 
+    titleAr?: string;
+    subtitle: string; 
+    subtitleAr?: string;
+  };
+  footer: { 
+    description: string; 
+    descriptionAr?: string;
+    rights: string; 
+    rightsAr?: string;
+  };
 }
 
 export interface SiteSettings {
-  general: { phone: string; email: string; location: string; locationValue: string };
+  general: { 
+    phone: string; 
+    email: string; 
+    location: string; 
+    locationValue: string;
+    siteNameEn?: string;
+    siteNameAr?: string;
+    logoUrl?: string;
+    faviconUrl?: string;
+  };
   stats: { yearsExp: number; projects: number; clients: number; technologies: number };
-  socials: { facebook: string; linkedin: string; github: string };
+  socials: { 
+    facebook: string; 
+    linkedin: string; 
+    github: string;
+    instagram?: string;
+    whatsapp?: string;
+  };
 }
+
 
 export interface ContactMessage {
   id: string;
@@ -152,8 +208,11 @@ export async function getPortfolioItems(): Promise<PortfolioItem[]> {
     const items: PortfolioItem[] = snapshot.docs.map((doc) => ({
       id: doc.id,
       title: doc.data().title || '',
+      titleAr: doc.data().titleAr || '',
       description: doc.data().description || '',
+      descriptionAr: doc.data().descriptionAr || '',
       imageUrl: doc.data().imageUrl || '',
+      galleryImages: doc.data().galleryImages || [],
       link: doc.data().link || '',
       tags: doc.data().tags || [],
       order: doc.data().order ?? 999,
@@ -165,7 +224,23 @@ export async function getPortfolioItems(): Promise<PortfolioItem[]> {
     return [];
   }
 }
-
+export async function getPortfolioItem(id: string): Promise<PortfolioItem | null> {
+  try {
+    const app = getServerApp();
+    if (!app) return null;
+    const db = getFirestore(app);
+    const snap = await getDoc(doc(db, 'portfolio', id));
+    if (!snap.exists()) return null;
+    
+    return {
+      id: snap.id,
+      ...snap.data()
+    } as PortfolioItem;
+  } catch (error) {
+    console.error('Error fetching portfolio item:', error);
+    return null;
+  }
+}
 export async function getSiteContent(): Promise<SiteContent | null> {
   try {
     const app = getServerApp();

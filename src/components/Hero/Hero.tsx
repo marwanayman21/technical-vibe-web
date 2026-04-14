@@ -8,9 +8,10 @@ interface HeroProps {
   subtitleText: string;
   ctaText: string;
   ctaSecondaryText: string;
+  brandingName?: string;
 }
 
-export default function Hero({titleText, subtitleText, ctaText, ctaSecondaryText}: HeroProps) {
+export default function Hero({titleText, subtitleText, ctaText, ctaSecondaryText, brandingName}: Readonly<HeroProps>) {
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({behavior: 'smooth'});
   };
@@ -31,7 +32,7 @@ export default function Hero({titleText, subtitleText, ctaText, ctaSecondaryText
             animate={{opacity: 1, scale: 1}}
             transition={{duration: 0.8, delay: 0.3}}
           >
-            Technical Vibe
+            {brandingName || 'Technical Vibe'}
           </motion.span>
         </h1>
         

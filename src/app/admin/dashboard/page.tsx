@@ -31,7 +31,7 @@ import styles from './dashboard.module.css';
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+  const [, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'portfolio' | 'pages' | 'settings' | 'messages' | 'reviews'>('portfolio');
   
@@ -39,8 +39,19 @@ export default function AdminDashboard() {
   const [projects, setProjects] = useState<PortfolioItem[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({title: '', description: '', link: '', tags: '', imageUrl: '', order: 0});
+  const [form, setForm] = useState({
+    title: '', 
+    titleAr: '', 
+    description: '', 
+    descriptionAr: '', 
+    link: '', 
+    tags: '', 
+    imageUrl: '', 
+    galleryImages: [] as string[],
+    order: 0
+  });
   const [uploading, setUploading] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Pages & Settings state
   const [content, setContent] = useState<SiteContent | null>(null);
@@ -53,6 +64,7 @@ export default function AdminDashboard() {
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
   const [showServiceForm, setShowServiceForm] = useState(false);
   const [serviceForm, setServiceForm] = useState({icon: '', titleEn: '', titleAr: '', descEn: '', descAr: ''});
+  const [showDetail, setShowDetail] = useState(false);
 
   useEffect(() => {
     if (!auth) {
@@ -60,16 +72,17 @@ export default function AdminDashboard() {
       return;
     }
     const unsub = onAuthStateChanged(auth, (u) => {
-      if (!u) {
-        router.push('/admin/login');
-      } else {
+      if (u) {
+        // Only fetch if we transitioning from no user
         setUser(u);
         fetchAllData();
+      } else {
+        router.push('/admin/login');
       }
       setLoading(false);
     });
     return () => unsub();
-  }, [router]);
+  }, []); // router is stable, auth state change is our trigger
 
   const fetchAllData = async () => {
     await Promise.all([
@@ -133,7 +146,7 @@ export default function AdminDashboard() {
     if (success) fetchServices();
   };
 
-  const handleServiceSubmit = async (e: React.FormEvent) => {
+  const handleServiceSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSaving(true);
     if (editingServiceId) {
@@ -146,6 +159,37 @@ export default function AdminDashboard() {
     setEditingServiceId(null);
     setServiceForm({icon: '', titleEn: '', titleAr: '', descEn: '', descAr: ''});
     fetchServices();
+  };
+
+  const handlePortfolioSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!db) return;
+
+    const data = {
+      title: form.title,
+      titleAr: form.titleAr,
+      description: form.description,
+      descriptionAr: form.descriptionAr,
+      link: form.link,
+      imageUrl: form.imageUrl,
+      galleryImages: form.galleryImages,
+      tags: form.tags.split(',').map((t) => t.trim()).filter(Boolean),
+      order: Number(form.order) || 0,
+    };
+
+    try {
+      if (editingId) {
+        await updateDoc(doc(db, 'portfolio', editingId), data);
+      } else {
+        await addDoc(collection(db, 'portfolio'), data);
+      }
+      setForm({title: '', titleAr: '', description: '', descriptionAr: '', link: '', tags: '', imageUrl: '', galleryImages: [], order: 0});
+      setShowForm(false);
+      setEditingId(null);
+      fetchProjects();
+    } catch (err) {
+      console.error('Error saving:', err);
+    }
   };
 
   const handleImageUpload = async (file: File) => {
@@ -173,32 +217,26 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!db) return;
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    const data = {
-      title: form.title,
-      description: form.description,
-      link: form.link,
-      imageUrl: form.imageUrl,
-      tags: form.tags.split(',').map((t) => t.trim()).filter(Boolean),
-      order: Number(form.order) || 0,
-    };
-
-    try {
-      if (editingId) {
-        await updateDoc(doc(db, 'portfolio', editingId), data);
-      } else {
-        await addDoc(collection(db, 'portfolio'), data);
-      }
-      setForm({title: '', description: '', link: '', tags: '', imageUrl: '', order: 0});
-      setShowForm(false);
-      setEditingId(null);
-      fetchProjects();
-    } catch (err) {
-      console.error('Error saving:', err);
+    setUploading(true);
+    const url = await handleImageUpload(file);
+    if (url) {
+      setForm(prev => ({
+        ...prev,
+        galleryImages: [...prev.galleryImages, url]
+      }));
     }
+    setUploading(false);
+  };
+
+  const removeGalleryImage = (index: number) => {
+    setForm(prev => ({
+      ...prev,
+      galleryImages: prev.galleryImages.filter((_, i) => i !== index)
+    }));
   };
 
   const handleDelete = async (id: string) => {
@@ -215,10 +253,13 @@ export default function AdminDashboard() {
   const handleEdit = (item: PortfolioItem) => {
     setForm({
       title: item.title,
+      titleAr: item.titleAr || '',
       description: item.description,
+      descriptionAr: item.descriptionAr || '',
       link: item.link,
       tags: item.tags.join(', '),
       imageUrl: item.imageUrl,
+      galleryImages: item.galleryImages || [],
       order: item.order || 0,
     });
     setEditingId(item.id);
@@ -289,64 +330,101 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
   return (
     <div className={styles.page}>
       {/* Sidebar */}
-      <aside className={styles.sidebar}>
+      <aside className={`${styles.sidebar} ${isSidebarOpen ? styles.open : ''}`}>
         <div className={styles.sidebarLogo}>
-          <img src="/logo.png" alt="Logo" className={styles.adminLogo} />
+          <button className={styles.sidebarLogo} onClick={() => setIsSidebarOpen(false)}>
+            {settings?.general?.logoUrl ? (
+              <img src={settings.general.logoUrl} alt="Logo" className={styles.logoImg} />
+            ) : (
+              <div className={styles.logoPlaceholder} /> // Clean state instead of 'VIBE' if settings not loaded
+            )}
+            <span className={styles.brandName}>
+              {settings?.general?.siteNameEn || ''}
+            </span>
+          </button>
         </div>
         <nav className={styles.sidebarNav}>
           <button 
             className={`${styles.sidebarLink} ${activeTab === 'portfolio' ? styles.active : ''}`}
-            onClick={() => setActiveTab('portfolio')}
+            onClick={() => { setActiveTab('portfolio'); setIsSidebarOpen(false); setShowDetail(false); }}
           >
             📁 Portfolio
           </button>
           <button 
             className={`${styles.sidebarLink} ${activeTab === 'pages' ? styles.active : ''}`}
-            onClick={() => setActiveTab('pages')}
+            onClick={() => { setActiveTab('pages'); setIsSidebarOpen(false); setShowDetail(false); }}
           >
             📄 Pages
           </button>
           <button 
             className={`${styles.sidebarLink} ${activeTab === 'settings' ? styles.active : ''}`}
-            onClick={() => setActiveTab('settings')}
+            onClick={() => { setActiveTab('settings'); setIsSidebarOpen(false); setShowDetail(false); }}
           >
             ⚙️ Settings
           </button>
           <button 
             className={`${styles.sidebarLink} ${activeTab === 'messages' ? styles.active : ''}`}
-            onClick={() => setActiveTab('messages')}
+            onClick={() => { setActiveTab('messages'); setIsSidebarOpen(false); setShowDetail(false); }}
           >
             📩 Messages
-            {messages.filter(m => !m.read).length > 0 && (
+            {messages.some(m => !m.read) && (
               <span className={styles.msgBadge}>{messages.filter(m => !m.read).length}</span>
             )}
           </button>
           <button 
             className={`${styles.sidebarLink} ${activeTab === 'reviews' ? styles.active : ''}`}
-            onClick={() => setActiveTab('reviews')}
+            onClick={() => { setActiveTab('reviews'); setIsSidebarOpen(false); setShowDetail(false); }}
           >
             ⭐ Reviews
           </button>
         </nav>
-        <button onClick={handleLogout} className={styles.logoutBtn}>
+        <button onClick={() => { handleLogout(); setIsSidebarOpen(false); }} className={styles.logoutBtn}>
           🚪 Logout
         </button>
       </aside>
 
+      {/* Sidebar Overlay for Mobile */}
+      {isSidebarOpen && (
+        <div className={styles.sidebarOverlay} onClick={() => setIsSidebarOpen(false)} />
+      )}
+
       {/* Main Content */}
       <main className={styles.main}>
+        <div className={styles.topBar}>
+          <div style={{display: 'flex', alignItems: 'center'}}>
+            <button 
+              className={styles.mobileMenuBtn}
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              ☰
+            </button>
+            <div>
+              <h1 className={styles.pageTitle}>
+                {activeTab === 'portfolio' && 'Portfolio Projects'}
+                {activeTab === 'pages' && 'Page Content'}
+                {activeTab === 'settings' && 'Site Settings'}
+                {activeTab === 'messages' && 'Messages & Inquiries'}
+                {activeTab === 'reviews' && 'Client Reviews'}
+              </h1>
+              <p className={styles.pageSubtitle}>
+                {activeTab === 'portfolio' && 'Manage your portfolio items and case studies'}
+                {activeTab === 'pages' && 'Update sections, headings and descriptions'}
+                {activeTab === 'settings' && 'General site information and socials'}
+                {activeTab === 'messages' && 'View and respond to client messages'}
+                {activeTab === 'reviews' && 'Moderate and manage client testimonials'}
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Portfolio Tab */}
         {activeTab === 'portfolio' && (
           <>
-            <div className={styles.topBar}>
-              <div>
-                <h1 className={styles.pageTitle}>Portfolio Projects</h1>
-                <p className={styles.pageSubtitle}>Manage your portfolio items that appear on the website</p>
-              </div>
+            <div className={styles.tabActions}>
               <button
                 className={styles.addBtn}
                 onClick={() => {
-                  setForm({title: '', description: '', link: '', tags: '', imageUrl: '', order: (projects[projects.length-1]?.order || 0) + 1});
+                  setForm({title: '', titleAr: '', description: '', descriptionAr: '', link: '', tags: '', imageUrl: '', galleryImages: [], order: (projects.at(-1)?.order || 0) + 1});
                   setEditingId(null);
                   setShowForm(true);
                 }}
@@ -363,10 +441,11 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
                     <h2>{editingId ? 'Edit Project' : 'Add New Project'}</h2>
                     <button className={styles.closeBtn} onClick={() => setShowForm(false)}>✕</button>
                   </div>
-                  <form onSubmit={handleSubmit} className={styles.form}>
+                    <form onSubmit={handlePortfolioSubmit} className={styles.form}>
                     <div className={styles.field}>
-                      <label className={styles.label}>Project Title</label>
+                      <label className={styles.label} htmlFor="projectTitleEn">Project Title (English)</label>
                       <input
+                        id="projectTitleEn"
                         type="text"
                         value={form.title}
                         onChange={(e) => setForm({...form, title: e.target.value})}
@@ -376,29 +455,56 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
                       />
                     </div>
                     <div className={styles.field}>
-                      <label className={styles.label}>Display Order</label>
+                      <label className={styles.label} htmlFor="projectTitleAr">Project Title (Arabic)</label>
                       <input
+                        id="projectTitleAr"
+                        type="text"
+                        value={form.titleAr}
+                        onChange={(e) => setForm({...form, titleAr: e.target.value})}
+                        className={styles.input}
+                        placeholder="اسم المشروع"
+                        dir="rtl"
+                      />
+                    </div>
+                    <div className={styles.field}>
+                      <label className={styles.label} htmlFor="projectOrder">Display Order</label>
+                      <input
+                        id="projectOrder"
                         type="number"
                         value={form.order || 0}
-                        onChange={(e) => setForm({...form, order: parseInt(e.target.value) || 0})}
+                        onChange={(e) => setForm({...form, order: Number.parseInt(e.target.value) || 0})}
                         className={styles.input}
                         placeholder="1, 2, 3..."
                       />
                     </div>
                     <div className={styles.field}>
-                      <label className={styles.label}>Description</label>
+                      <label className={styles.label} htmlFor="projectDescEn">Description (English)</label>
                       <textarea
+                        id="projectDescEn"
                         value={form.description}
                         onChange={(e) => setForm({...form, description: e.target.value})}
                         className={styles.textarea}
                         placeholder="Describe the project..."
-                        rows={4}
+                        rows={3}
                         required
                       />
                     </div>
                     <div className={styles.field}>
-                      <label className={styles.label}>Project Link</label>
+                      <label className={styles.label} htmlFor="projectDescAr">Description (Arabic)</label>
+                      <textarea
+                        id="projectDescAr"
+                        value={form.descriptionAr}
+                        onChange={(e) => setForm({...form, descriptionAr: e.target.value})}
+                        className={styles.textarea}
+                        placeholder="وصف المشروع..."
+                        rows={3}
+                        dir="rtl"
+                      />
+                    </div>
+                    <div className={styles.field}>
+                      <label className={styles.label} htmlFor="projectLink">Project Link</label>
                       <input
+                        id="projectLink"
                         type="url"
                         value={form.link}
                         onChange={(e) => setForm({...form, link: e.target.value})}
@@ -407,8 +513,9 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
                       />
                     </div>
                     <div className={styles.field}>
-                      <label className={styles.label}>Tags (comma separated)</label>
+                      <label className={styles.label} htmlFor="projectTags">Tags (comma separated)</label>
                       <input
+                        id="projectTags"
                         type="text"
                         value={form.tags}
                         onChange={(e) => setForm({...form, tags: e.target.value})}
@@ -417,26 +524,53 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
                       />
                     </div>
                     <div className={styles.field}>
-                      <label className={styles.label}>Project Image</label>
-                      <div className={styles.uploadArea}>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const url = await handleImageUpload(file);
-                              if (url) setForm({...form, imageUrl: url});
-                            }
-                          }}
-                          className={styles.fileInput}
-                        />
-                        {uploading && <span className={styles.uploadingText}>Uploading...</span>}
-                        {form.imageUrl && (
-                          <img src={form.imageUrl} alt="Preview" className={styles.preview} />
-                        )}
+                      <label className={styles.label} htmlFor="projectImage">Project Image</label>
+                      <input
+                        id="projectImage"
+                        type="file"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setUploading(true);
+                            const url = await handleImageUpload(file);
+                            if (url) setForm({...form, imageUrl: url});
+                            setUploading(false);
+                          }
+                        }}
+                        className={styles.fileInput}
+                      />
+                      {uploading && <span className={styles.uploadingText}>Uploading...</span>}
+                      {form.imageUrl && <img src={form.imageUrl} alt="Preview" className={styles.preview} />}
+                    </div>
+
+                    <div className={styles.field}>
+                      <label className={styles.label}>Gallery Images</label>
+                      <div className={styles.galleryUploadGrid}>
+                        {form.galleryImages.map((img, i) => (
+                          <div key={i} className={styles.galleryPreviewItem}>
+                            <img src={img} alt={`Gallery ${i}`} className={styles.galleryPreviewImg} />
+                            <button 
+                              type="button" 
+                              className={styles.removeImgBtn}
+                              onClick={() => removeGalleryImage(i)}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                        <label className={styles.galleryAddBtn}>
+                          +
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={handleGalleryUpload} 
+                            style={{display: 'none'}} 
+                          />
+                        </label>
                       </div>
                     </div>
+
                     <div className={styles.formActions}>
                       <button type="button" className={styles.cancelBtn} onClick={() => setShowForm(false)}>
                         Cancel
@@ -509,20 +643,62 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
               <div className={styles.editorCard}>
                 <h3 className={styles.editorTitle}>Hero Section</h3>
                 <div className={styles.formGroup}>
-                  <label>Title</label>
+                  <label htmlFor="heroTitleEn">Title (English)</label>
                   <input 
+                    id="heroTitleEn"
                     defaultValue={content?.hero?.title}
                     onBlur={(e) => handleSaveContent('hero', { ...content?.hero, title: e.target.value })}
                     className={styles.input}
                   />
                 </div>
                 <div className={styles.formGroup}>
-                  <label>Subtitle</label>
+                  <label htmlFor="heroTitleAr">Title (Arabic)</label>
+                  <input 
+                    id="heroTitleAr"
+                    defaultValue={content?.hero?.titleAr}
+                    onBlur={(e) => handleSaveContent('hero', { ...content?.hero, titleAr: e.target.value })}
+                    className={styles.input}
+                    dir="rtl"
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="heroSubtitleEn">Subtitle (English)</label>
                   <textarea 
+                    id="heroSubtitleEn"
                     defaultValue={content?.hero?.subtitle || ''}
                     onBlur={(e) => handleSaveContent('hero', { ...content?.hero, subtitle: e.target.value })}
                     className={styles.textarea}
                     rows={3}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="heroSubtitleAr">Subtitle (Arabic)</label>
+                  <textarea 
+                    id="heroSubtitleAr"
+                    defaultValue={content?.hero?.subtitleAr || ''}
+                    onBlur={(e) => handleSaveContent('hero', { ...content?.hero, subtitleAr: e.target.value })}
+                    className={styles.textarea}
+                    rows={3}
+                    dir="rtl"
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="heroCtaEn">CTA Button (English)</label>
+                  <input 
+                    id="heroCtaEn"
+                    defaultValue={content?.hero?.cta || ''}
+                    onBlur={(e) => handleSaveContent('hero', { ...content?.hero, cta: e.target.value })}
+                    className={styles.input}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="heroCtaAr">CTA Button (Arabic)</label>
+                  <input 
+                    id="heroCtaAr"
+                    defaultValue={content?.hero?.ctaAr || ''}
+                    onBlur={(e) => handleSaveContent('hero', { ...content?.hero, ctaAr: e.target.value })}
+                    className={styles.input}
+                    dir="rtl"
                   />
                 </div>
               </div>
@@ -530,20 +706,83 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
               <div className={styles.editorCard}>
                 <h3 className={styles.editorTitle}>About Section</h3>
                 <div className={styles.formGroup}>
-                  <label>Title</label>
+                  <label htmlFor="aboutBadgeEn">Badge (English)</label>
                   <input 
+                    id="aboutBadgeEn"
+                    defaultValue={content?.about?.badge}
+                    onBlur={(e) => handleSaveContent('about', { ...content?.about, badge: e.target.value })}
+                    className={styles.input}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="aboutBadgeAr">Badge (Arabic)</label>
+                  <input 
+                    id="aboutBadgeAr"
+                    defaultValue={content?.about?.badgeAr}
+                    onBlur={(e) => handleSaveContent('about', { ...content?.about, badgeAr: e.target.value })}
+                    className={styles.input}
+                    dir="rtl"
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="aboutTitleEn">Title (English)</label>
+                  <input 
+                    id="aboutTitleEn"
                     defaultValue={content?.about?.title}
                     onBlur={(e) => handleSaveContent('about', { ...content?.about, title: e.target.value })}
                     className={styles.input}
                   />
                 </div>
                 <div className={styles.formGroup}>
-                  <label>Description</label>
+                  <label htmlFor="aboutTitleAr">Title (Arabic)</label>
+                  <input 
+                    id="aboutTitleAr"
+                    defaultValue={content?.about?.titleAr}
+                    onBlur={(e) => handleSaveContent('about', { ...content?.about, titleAr: e.target.value })}
+                    className={styles.input}
+                    dir="rtl"
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="aboutDesc1En">Description 1 (English)</label>
                   <textarea 
+                    id="aboutDesc1En"
                     defaultValue={content?.about?.description}
                     onBlur={(e) => handleSaveContent('about', { ...content?.about, description: e.target.value })}
                     className={styles.textarea}
-                    rows={4}
+                    rows={3}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="aboutDesc1Ar">Description 1 (Arabic)</label>
+                  <textarea 
+                    id="aboutDesc1Ar"
+                    defaultValue={content?.about?.descriptionAr}
+                    onBlur={(e) => handleSaveContent('about', { ...content?.about, descriptionAr: e.target.value })}
+                    className={styles.textarea}
+                    rows={3}
+                    dir="rtl"
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="aboutDesc2En">Description 2 (English)</label>
+                  <textarea 
+                    id="aboutDesc2En"
+                    defaultValue={content?.about?.description2}
+                    onBlur={(e) => handleSaveContent('about', { ...content?.about, description2: e.target.value })}
+                    className={styles.textarea}
+                    rows={3}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="aboutDesc2Ar">Description 2 (Arabic)</label>
+                  <textarea 
+                    id="aboutDesc2Ar"
+                    defaultValue={content?.about?.description2Ar}
+                    onBlur={(e) => handleSaveContent('about', { ...content?.about, description2Ar: e.target.value })}
+                    className={styles.textarea}
+                    rows={3}
+                    dir="rtl"
                   />
                 </div>
               </div>
@@ -552,27 +791,60 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
               <div className={styles.editorCard}>
                 <h3 className={styles.editorTitle}>Services Section (Header)</h3>
                 <div className={styles.formGroup}>
-                  <label>Section Badge</label>
+                  <label htmlFor="servicesBadgeEn">Section Badge (English)</label>
                   <input 
+                    id="servicesBadgeEn"
                     defaultValue={content?.services?.badge || ''}
                     onBlur={(e) => handleSaveContent('services', { ...content?.services, badge: e.target.value })}
                     className={styles.input}
                   />
                 </div>
                 <div className={styles.formGroup}>
-                  <label>Section Title</label>
+                  <label htmlFor="servicesBadgeAr">Section Badge (Arabic)</label>
                   <input 
+                    id="servicesBadgeAr"
+                    defaultValue={content?.services?.badgeAr || ''}
+                    onBlur={(e) => handleSaveContent('services', { ...content?.services, badgeAr: e.target.value })}
+                    className={styles.input}
+                    dir="rtl"
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="servicesTitleEn">Section Title (English)</label>
+                  <input 
+                    id="servicesTitleEn"
                     defaultValue={content?.services?.title || ''}
                     onBlur={(e) => handleSaveContent('services', { ...content?.services, title: e.target.value })}
                     className={styles.input}
                   />
                 </div>
                 <div className={styles.formGroup}>
-                  <label>Section Subtitle</label>
+                  <label htmlFor="servicesTitleAr">Section Title (Arabic)</label>
+                  <input 
+                    id="servicesTitleAr"
+                    defaultValue={content?.services?.titleAr || ''}
+                    onBlur={(e) => handleSaveContent('services', { ...content?.services, titleAr: e.target.value })}
+                    className={styles.input}
+                    dir="rtl"
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="servicesSubtitleEn">Section Subtitle (English)</label>
                   <textarea 
+                    id="servicesSubtitleEn"
                     defaultValue={content?.services?.subtitle || ''}
                     onBlur={(e) => handleSaveContent('services', { ...content?.services, subtitle: e.target.value })}
                     className={styles.textarea}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="servicesSubtitleAr">Section Subtitle (Arabic)</label>
+                  <textarea 
+                    id="servicesSubtitleAr"
+                    defaultValue={content?.services?.subtitleAr || ''}
+                    onBlur={(e) => handleSaveContent('services', { ...content?.services, subtitleAr: e.target.value })}
+                    className={styles.textarea}
+                    dir="rtl"
                   />
                 </div>
               </div>
@@ -626,46 +898,101 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
         {/* Settings Tab */}
         {activeTab === 'settings' && (
           <div className={styles.tabContent}>
-            <div className={styles.topBar}>
-              <div>
-                <h1 className={styles.pageTitle}>Site Settings</h1>
-                <p className={styles.pageSubtitle}>Manage business details and live stats</p>
-              </div>
-            </div>
             <div className={styles.editorGrid}>
               <div className={styles.editorCard}>
                 <h3 className={styles.editorTitle}>General Info</h3>
                 <div className={styles.formGroup}>
-                  <label>Phone</label>
+                  <label htmlFor="settingsPhone">Phone</label>
                   <input 
+                    id="settingsPhone"
                     defaultValue={settings?.general?.phone}
                     onBlur={(e) => handleSaveSettings('general', { ...settings?.general, phone: e.target.value })}
                     className={styles.input}
                   />
                 </div>
                 <div className={styles.formGroup}>
-                  <label>Email</label>
+                  <label htmlFor="settingsEmail">Email</label>
                   <input 
+                    id="settingsEmail"
                     defaultValue={settings?.general?.email}
                     onBlur={(e) => handleSaveSettings('general', { ...settings?.general, email: e.target.value })}
                     className={styles.input}
                   />
                 </div>
                 <div className={styles.formGroup}>
-                  <label>Location</label>
+                  <label htmlFor="settingsLocation">Location</label>
                   <input 
+                    id="settingsLocation"
                     defaultValue={settings?.general?.location}
                     onBlur={(e) => handleSaveSettings('general', { ...settings?.general, location: e.target.value })}
                     className={styles.input}
                   />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="siteNameEn">Site Name (English)</label>
+                  <input 
+                    id="siteNameEn"
+                    defaultValue={settings?.general?.siteNameEn || ''}
+                    onBlur={(e) => handleSaveSettings('general', { ...settings?.general, siteNameEn: e.target.value })}
+                    className={styles.input}
+                    placeholder="Technical Vibe"
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="siteNameAr">Site Name (Arabic)</label>
+                  <input 
+                    id="siteNameAr"
+                    defaultValue={settings?.general?.siteNameAr || ''}
+                    onBlur={(e) => handleSaveSettings('general', { ...settings?.general, siteNameAr: e.target.value })}
+                    className={styles.input}
+                    placeholder="تيكنيكال فايب"
+                    dir="rtl"
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Site Logo</label>
+                  <div className={styles.uploadArea}>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const url = await handleImageUpload(file);
+                          if (url) handleSaveSettings('general', { ...settings?.general, logoUrl: url });
+                        }
+                      }}
+                      className={styles.fileInput}
+                    />
+                    {settings?.general?.logoUrl && <img src={settings?.general?.logoUrl} alt="Logo" style={{width: '50px', height: '50px', objectFit: 'contain', marginTop: '10px'}} />}
+                  </div>
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Site Favicon</label>
+                  <div className={styles.uploadArea}>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const url = await handleImageUpload(file);
+                          if (url) handleSaveSettings('general', { ...settings?.general, faviconUrl: url });
+                        }
+                      }}
+                      className={styles.fileInput}
+                    />
+                    {settings?.general?.faviconUrl && <img src={settings?.general?.faviconUrl} alt="Favicon" style={{width: '32px', height: '32px', objectFit: 'contain', marginTop: '10px'}} />}
+                  </div>
                 </div>
               </div>
 
               <div className={styles.editorCard}>
                 <h3 className={styles.editorTitle}>Social Media</h3>
                 <div className={styles.formGroup}>
-                  <label>Facebook URL</label>
+                  <label htmlFor="socialFacebook">Facebook URL</label>
                   <input 
+                    id="socialFacebook"
                     defaultValue={settings?.socials?.facebook}
                     onBlur={(e) => handleSaveSettings('socials', { ...settings?.socials, facebook: e.target.value })}
                     className={styles.input}
@@ -673,8 +1000,9 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
                   />
                 </div>
                 <div className={styles.formGroup}>
-                  <label>LinkedIn URL</label>
+                  <label htmlFor="socialLinkedin">LinkedIn URL</label>
                   <input 
+                    id="socialLinkedin"
                     defaultValue={settings?.socials?.linkedin}
                     onBlur={(e) => handleSaveSettings('socials', { ...settings?.socials, linkedin: e.target.value })}
                     className={styles.input}
@@ -682,8 +1010,29 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
                   />
                 </div>
                 <div className={styles.formGroup}>
-                  <label>GitHub URL</label>
+                  <label htmlFor="socialInstagram">Instagram URL</label>
                   <input 
+                    id="socialInstagram"
+                    defaultValue={settings?.socials?.instagram}
+                    onBlur={(e) => handleSaveSettings('socials', { ...settings?.socials, instagram: e.target.value })}
+                    className={styles.input}
+                    placeholder="https://instagram.com/..."
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="socialWhatsapp">WhatsApp Number</label>
+                  <input 
+                    id="socialWhatsapp"
+                    defaultValue={settings?.socials?.whatsapp}
+                    onBlur={(e) => handleSaveSettings('socials', { ...settings?.socials, whatsapp: e.target.value })}
+                    className={styles.input}
+                    placeholder="+201..."
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="socialGithub">GitHub URL</label>
+                  <input 
+                    id="socialGithub"
                     defaultValue={settings?.socials?.github}
                     onBlur={(e) => handleSaveSettings('socials', { ...settings?.socials, github: e.target.value })}
                     className={styles.input}
@@ -696,38 +1045,42 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
                 <h3 className={styles.editorTitle}>Stats</h3>
                 <div className={styles.statsEditor}>
                   <div className={styles.formGroup}>
-                    <label>Years of Exp</label>
+                    <label htmlFor="statYears">Years of Exp</label>
                     <input 
+                      id="statYears"
                       type="number"
                       defaultValue={settings?.stats?.yearsExp ?? 0}
-                      onBlur={(e) => handleSaveSettings('stats', { ...settings?.stats, yearsExp: parseInt(e.target.value) || 0 })}
+                      onBlur={(e) => handleSaveSettings('stats', { ...settings?.stats, yearsExp: Number.parseInt(e.target.value) || 0 })}
                       className={styles.input}
                     />
                   </div>
                   <div className={styles.formGroup}>
-                    <label>Projects Done</label>
+                    <label htmlFor="statProjects">Projects Done</label>
                     <input 
+                      id="statProjects"
                       type="number"
                       defaultValue={settings?.stats?.projects ?? 0}
-                      onBlur={(e) => handleSaveSettings('stats', { ...settings?.stats, projects: parseInt(e.target.value) || 0 })}
+                      onBlur={(e) => handleSaveSettings('stats', { ...settings?.stats, projects: Number.parseInt(e.target.value) || 0 })}
                       className={styles.input}
                     />
                   </div>
                   <div className={styles.formGroup}>
-                    <label>Happy Clients</label>
+                    <label htmlFor="statClients">Happy Clients</label>
                     <input 
+                      id="statClients"
                       type="number"
                       defaultValue={settings?.stats?.clients ?? 0}
-                      onBlur={(e) => handleSaveSettings('stats', { ...settings?.stats, clients: parseInt(e.target.value) || 0 })}
+                      onBlur={(e) => handleSaveSettings('stats', { ...settings?.stats, clients: Number.parseInt(e.target.value) || 0 })}
                       className={styles.input}
                     />
                   </div>
                   <div className={styles.formGroup}>
-                    <label>Technologies</label>
+                    <label htmlFor="statTechs">Technologies</label>
                     <input 
+                      id="statTechs"
                       type="number"
                       defaultValue={settings?.stats?.technologies ?? 0}
-                      onBlur={(e) => handleSaveSettings('stats', { ...settings?.stats, technologies: parseInt(e.target.value) || 0 })}
+                      onBlur={(e) => handleSaveSettings('stats', { ...settings?.stats, technologies: Number.parseInt(e.target.value) || 0 })}
                       className={styles.input}
                     />
                   </div>
@@ -739,7 +1092,7 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
 
         {/* Messages Tab */}
         {activeTab === 'messages' && (
-          <div className={styles.messagesContainer}>
+          <div className={`${styles.messagesContainer} ${showDetail ? styles.showDetail : ''}`}>
             <div className={styles.messagesList}>
               {messages.length === 0 ? (
                 <div className={styles.empty}>No messages received yet.</div>
@@ -747,9 +1100,19 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
                 messages.map(msg => (
                   <div 
                     key={msg.id} 
-                    className={`${styles.msgItem} ${!msg.read ? styles.unread : ''} ${selectedMessage?.id === msg.id ? styles.msgSelected : ''}`}
+                    className={`${styles.msgItem} ${msg.read ? '' : styles.unread} ${selectedMessage?.id === msg.id ? styles.msgSelected : ''}`}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        setSelectedMessage(msg);
+                        setShowDetail(true);
+                        if (!msg.read) handleToggleRead(msg.id, true);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => {
                       setSelectedMessage(msg);
+                      setShowDetail(true);
                       if (!msg.read) handleToggleRead(msg.id, true);
                     }}
                   >
@@ -768,6 +1131,9 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
             <div className={styles.msgDetail}>
               {selectedMessage ? (
                 <div className={styles.msgCard}>
+                  <button className={styles.backBtn} onClick={() => setShowDetail(false)}>
+                    ← Back to List
+                  </button>
                   <div className={styles.msgCardHeader}>
                     <div>
                       <h2>{selectedMessage.name}</h2>
@@ -794,13 +1160,6 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
         {/* Reviews Tab */}
         {activeTab === 'reviews' && (
           <div className={styles.tabContent}>
-            <div className={styles.topBar}>
-              <div>
-                <h1 className={styles.pageTitle}>User Reviews</h1>
-                <p className={styles.pageSubtitle}>Manage testimonials and ratings from your clients</p>
-              </div>
-            </div>
-            
             <div className={styles.reviewsGrid}>
               {testimonials.length === 0 ? (
                 <div className={styles.empty}>No reviews yet.</div>
@@ -811,8 +1170,8 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
                       <div>
                         <h3>{review.name}</h3>
                         <div className={styles.ratingStars}>
-                          {[...Array(5)].map((_, i) => (
-                            <span key={i} className={i < review.rating ? styles.starFilled : styles.starEmpty}>
+                          {[...new Array(5)].map((_, i) => (
+                            <span key={`${review.id}-star-${i}`} className={i < review.rating ? styles.starFilled : styles.starEmpty}>
                               ★
                             </span>
                           ))}
@@ -855,8 +1214,9 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
             </div>
             <form onSubmit={handleServiceSubmit} className={styles.form}>
               <div className={styles.field}>
-                <label className={styles.label}>Icon (Emoji or Text)</label>
+                <label className={styles.label} htmlFor="serviceIcon">Icon (Emoji or Text)</label>
                 <input
+                  id="serviceIcon"
                   type="text"
                   value={serviceForm.icon}
                   onChange={(e) => setServiceForm({...serviceForm, icon: e.target.value})}
@@ -868,8 +1228,9 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
 
               <div className={styles.grid2Col}>
                 <div className={styles.field}>
-                  <label className={styles.label}>Title (English)</label>
+                  <label className={styles.label} htmlFor="serviceTitleEn">Title (English)</label>
                   <input
+                    id="serviceTitleEn"
                     type="text"
                     value={serviceForm.titleEn}
                     onChange={(e) => setServiceForm({...serviceForm, titleEn: e.target.value})}
@@ -878,8 +1239,9 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
                   />
                 </div>
                 <div className={styles.field}>
-                  <label className={styles.label}>Title (Arabic)</label>
+                  <label className={styles.label} htmlFor="serviceTitleAr">Title (Arabic)</label>
                   <input
+                    id="serviceTitleAr"
                     type="text"
                     value={serviceForm.titleAr}
                     onChange={(e) => setServiceForm({...serviceForm, titleAr: e.target.value})}
@@ -891,8 +1253,9 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
               </div>
 
               <div className={styles.field}>
-                <label className={styles.label}>Description (English)</label>
+                <label className={styles.label} htmlFor="serviceDescEn">Description (English)</label>
                 <textarea
+                  id="serviceDescEn"
                   value={serviceForm.descEn}
                   onChange={(e) => setServiceForm({...serviceForm, descEn: e.target.value})}
                   className={styles.textarea}
@@ -902,8 +1265,9 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
               </div>
 
               <div className={styles.field}>
-                <label className={styles.label}>Description (Arabic)</label>
+                <label className={styles.label} htmlFor="serviceDescAr">Description (Arabic)</label>
                 <textarea
+                  id="serviceDescAr"
                   value={serviceForm.descAr}
                   onChange={(e) => setServiceForm({...serviceForm, descAr: e.target.value})}
                   className={styles.textarea}

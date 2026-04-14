@@ -112,3 +112,11 @@
     padding: 2rem;
   }
 }
+
+@media (max-width: 480px) {
+  .stats {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    padding: 1.5rem;
+  }
+}

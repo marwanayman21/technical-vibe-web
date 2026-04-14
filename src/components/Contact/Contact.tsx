@@ -19,15 +19,20 @@ interface ContactProps {
   emailValue: string;
   locationLabel: string;
   locationValue: string;
+  whatsappValue?: string;
 }
 
 export default function Contact({
   badge, title, subtitle,
   namePlaceholder, emailPlaceholder, messagePlaceholder, sendText,
   phoneLabel, phoneValue, emailLabel, emailValue, locationLabel, locationValue,
+  whatsappValue
 }: ContactProps) {
   const [formState, setFormState] = useState({name: '', email: '', message: ''});
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
+  const whatsappDisplay = whatsappValue ? `https://wa.me/${whatsappValue.replace(/\D/g, '')}` : '';
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,16 +117,25 @@ export default function Contact({
                 <span className={styles.infoIcon}>📞</span>
                 <div>
                   <h4 className={styles.infoLabel}>{phoneLabel}</h4>
-                  <p className={styles.infoValue}>{phoneValue}</p>
+                  <a href={`tel:${phoneValue.replace(/\s/g, '')}`} className={styles.infoValue}>{phoneValue}</a>
                 </div>
               </div>
               <div className={styles.infoCard}>
                 <span className={styles.infoIcon}>✉️</span>
                 <div>
                   <h4 className={styles.infoLabel}>{emailLabel}</h4>
-                  <p className={styles.infoValue}>{emailValue}</p>
+                  <a href={`mailto:${emailValue}`} className={styles.infoValue}>{emailValue}</a>
                 </div>
               </div>
+              {whatsappValue && (
+                <div className={styles.infoCard}>
+                  <span className={styles.infoIcon}>💬</span>
+                  <div>
+                    <h4 className={styles.infoLabel}>WhatsApp</h4>
+                    <a href={whatsappDisplay} target="_blank" rel="noopener noreferrer" className={styles.infoValue}>{whatsappValue}</a>
+                  </div>
+                </div>
+              )}
               <div className={styles.infoCard}>
                 <span className={styles.infoIcon}>📍</span>
                 <div>

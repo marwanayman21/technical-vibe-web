@@ -18,12 +18,13 @@ interface TestimonialsProps {
   subtitle: string;
   items: Testimonial[];
   submitText: string;
+  formTitle: string;
   placeholderName: string;
   placeholderMsg: string;
 }
 
 export default function Testimonials({
-  badge, title, subtitle, items, submitText, placeholderName, placeholderMsg
+  badge, title, subtitle, items, submitText, formTitle, placeholderName, placeholderMsg
 }: TestimonialsProps) {
   const [form, setForm] = useState({name: '', message: '', rating: 5});
   const [submitting, setSubmitting] = useState(false);
@@ -92,7 +93,7 @@ export default function Testimonials({
         <div className={styles.formSection}>
           <ScrollReveal>
             <div className={styles.formCard}>
-              <h3 className={styles.formTitle}>Leave a Review</h3>
+              <h3 className={styles.formTitle}>{formTitle}</h3>
               <form onSubmit={handleSubmit} className={styles.form}>
                 <div className={styles.ratingPicker}>
                   {[1, 2, 3, 4, 5].map((num) => (

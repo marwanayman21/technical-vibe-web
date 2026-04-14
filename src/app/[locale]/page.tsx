@@ -33,35 +33,37 @@ export default async function HomePage({params}: {params: Promise<{locale: strin
   ]);
 
   // Merge Firestore content with translations (Firestore overrides translations)
+  const isAr = locale === 'ar';
+
   const heroData = {
-    title: siteContent?.hero?.title || tHero('title'),
-    subtitle: siteContent?.hero?.subtitle || tHero('subtitle'),
-    cta: siteContent?.hero?.cta || tHero('cta'),
-    ctaSecondary: siteContent?.hero?.ctaSecondary || tHero('ctaSecondary'),
+    title: (isAr ? siteContent?.hero?.titleAr : siteContent?.hero?.title) || siteContent?.hero?.title || tHero('title'),
+    subtitle: (isAr ? siteContent?.hero?.subtitleAr : siteContent?.hero?.subtitle) || siteContent?.hero?.subtitle || tHero('subtitle'),
+    cta: (isAr ? siteContent?.hero?.ctaAr : siteContent?.hero?.cta) || siteContent?.hero?.cta || tHero('cta'),
+    ctaSecondary: (isAr ? siteContent?.hero?.ctaSecondaryAr : siteContent?.hero?.ctaSecondary) || siteContent?.hero?.ctaSecondary || tHero('ctaSecondary'),
   };
 
   const aboutData = {
-    badge: siteContent?.about?.badge || tAbout('badge'),
-    title: siteContent?.about?.title || tAbout('title'),
-    description: siteContent?.about?.description || tAbout('description'),
-    description2: siteContent?.about?.description2 || tAbout('description2'),
+    badge: (isAr ? siteContent?.about?.badgeAr : siteContent?.about?.badge) || siteContent?.about?.badge || tAbout('badge'),
+    title: (isAr ? siteContent?.about?.titleAr : siteContent?.about?.title) || siteContent?.about?.title || tAbout('title'),
+    description: (isAr ? siteContent?.about?.descriptionAr : siteContent?.about?.description) || siteContent?.about?.description || tAbout('description'),
+    description2: (isAr ? siteContent?.about?.description2Ar : siteContent?.about?.description2) || siteContent?.about?.description2 || tAbout('description2'),
   };
 
   const servicesData = {
-    badge: siteContent?.services?.badge || tServices('badge'),
-    title: siteContent?.services?.title || tServices('title'),
-    subtitle: siteContent?.services?.subtitle || tServices('subtitle'),
+    badge: (isAr ? siteContent?.services?.badgeAr : siteContent?.services?.badge) || siteContent?.services?.badge || tServices('badge'),
+    title: (isAr ? siteContent?.services?.titleAr : siteContent?.services?.title) || siteContent?.services?.title || tServices('title'),
+    subtitle: (isAr ? siteContent?.services?.subtitleAr : siteContent?.services?.subtitle) || siteContent?.services?.subtitle || tServices('subtitle'),
   };
 
   const contactData = {
-    badge: siteContent?.contact?.badge || tContact('badge'),
-    title: siteContent?.contact?.title || tContact('title'),
-    subtitle: siteContent?.contact?.subtitle || tContact('subtitle'),
+    badge: (isAr ? siteContent?.contact?.badgeAr : siteContent?.contact?.badge) || siteContent?.contact?.badge || tContact('badge'),
+    title: (isAr ? siteContent?.contact?.titleAr : siteContent?.contact?.title) || siteContent?.contact?.title || tContact('title'),
+    subtitle: (isAr ? siteContent?.contact?.subtitleAr : siteContent?.contact?.subtitle) || siteContent?.contact?.subtitle || tContact('subtitle'),
   };
 
   const footerData = {
-    description: siteContent?.footer?.description || tFooter('description'),
-    rights: siteContent?.footer?.rights || tFooter('rights'),
+    description: (isAr ? siteContent?.footer?.descriptionAr : siteContent?.footer?.description) || siteContent?.footer?.description || tFooter('description'),
+    rights: (isAr ? siteContent?.footer?.rightsAr : siteContent?.footer?.rights) || siteContent?.footer?.rights || tFooter('rights'),
   };
 
   const settings = {
@@ -75,6 +77,11 @@ export default async function HomePage({params}: {params: Promise<{locale: strin
       technologies: siteSettings?.stats?.technologies || 30,
     }
   };
+
+  const siteName = locale === 'ar' 
+    ? (siteSettings?.general?.siteNameAr || 'تيكنيكال فايب')
+    : (siteSettings?.general?.siteNameEn || 'Technical Vibe');
+  const logoUrl = siteSettings?.general?.logoUrl || '/logo.png';
 
   const serviceItems = dbServices.map(s => ({
     icon: s.icon,
@@ -99,6 +106,7 @@ export default async function HomePage({params}: {params: Promise<{locale: strin
         subtitleText={heroData.subtitle}
         ctaText={heroData.cta}
         ctaSecondaryText={heroData.ctaSecondary}
+        brandingName={siteName}
       />
 
       <About
@@ -127,8 +135,10 @@ export default async function HomePage({params}: {params: Promise<{locale: strin
         badge={tPortfolio('badge')}
         title={tPortfolio('title')}
         subtitle={tPortfolio('subtitle')}
-        viewProjectText={tPortfolio('viewProject')}
+        tryDemoText={tPortfolio('tryDemo')}
+        viewDetailsText={tPortfolio('viewDetails')}
         items={portfolioItems}
+        locale={locale}
       />
 
       <Contact
@@ -145,6 +155,7 @@ export default async function HomePage({params}: {params: Promise<{locale: strin
         emailValue={settings.email}
         locationLabel={tContact('location')}
         locationValue={settings.location}
+        whatsappValue={siteSettings?.socials?.whatsapp}
       />
 
       <Testimonials
@@ -153,6 +164,7 @@ export default async function HomePage({params}: {params: Promise<{locale: strin
         subtitle={tTestimonials('subtitle')}
         items={testimonials}
         submitText={tTestimonials('submit')}
+        formTitle={tTestimonials('formTitle')}
         placeholderName={tTestimonials('placeholderName')}
         placeholderMsg={tTestimonials('placeholderMsg')}
       />
@@ -168,6 +180,8 @@ export default async function HomePage({params}: {params: Promise<{locale: strin
         locationValue={settings.location}
         navLinks={navLinks}
         socials={siteSettings?.socials || {}}
+        siteName={siteName}
+        logoUrl={logoUrl}
       />
     </main>
   );
