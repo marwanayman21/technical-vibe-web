@@ -10,6 +10,8 @@ import Footer from '@/components/Footer/Footer';
 import ParticlesBg from '@/components/ParticlesBg/ParticlesBg';
 import {getPortfolioItems, getSiteContent, getSiteSettings, getTestimonials, getServiceItems} from '@/lib/firestore';
 
+export const dynamic = 'force-dynamic';
+
 export default async function HomePage({params}: {params: Promise<{locale: string}>}) {
   const {locale} = await params;
   setRequestLocale(locale);

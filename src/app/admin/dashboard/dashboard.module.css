@@ -83,6 +83,8 @@
   cursor: pointer;
   padding: 0;
   width: 100%;
+  text-align: left;
+  overflow: hidden;
 }
 
 .logoImg {
@@ -100,13 +102,17 @@
 }
 
 .brandName {
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   font-weight: 800;
   background: linear-gradient(135deg, #00d2ff, #3a7bd5);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.2;
 }
 
 .sidebarNav {

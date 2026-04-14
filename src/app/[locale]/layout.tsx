@@ -1,6 +1,8 @@
 import {getMessages, setRequestLocale} from 'next-intl/server';
 import {routing} from '@/i18n/routing';
 import {notFound} from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 import Navbar from '@/components/Navbar/Navbar';
 import '../globals.css';
 import {getSiteSettings} from '@/lib/firestore';
