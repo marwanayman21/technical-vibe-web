@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model PortfolioItem {
+  id            String   @id @default(uuid())
+  title         String
+  titleAr       String?
+  description   String
+  descriptionAr String?
+  imageUrl      String
+  galleryImages String[]
+  link          String
+  tags          String[]
+  order         Int      @default(999)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model SiteContent {
+  id       String @id
+  hero     Json?
+  about    Json?
+  services Json?
+  contact  Json?
+  footer   Json?
+}
+
+model SiteSettings {
+  id      String @id
+  general Json?
+  stats   Json?
+  socials Json?
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Testimonial {
+  id        String   @id @default(uuid())
+  name      String
+  message   String
+  rating    Int
+  createdAt DateTime @default(now())
+}
+
+model ServiceItem {
+  id      String @id @default(uuid())
+  icon    String
+  titleEn String
+  titleAr String
+  descEn  String
+  descAr  String
+  order   Int    @default(999)
+}
+
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  hashedPassword String
+  name           String?
+  role           String   @default("admin")
+  createdAt      DateTime @default(now())
+}
