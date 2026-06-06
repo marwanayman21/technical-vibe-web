@@ -1,37 +1,67 @@
 'use client';
 
 import {useEffect, useState} from 'react';
-import {onAuthStateChanged, signOut, User} from 'firebase/auth';
-import {auth, db, isFirebaseInitialized} from '@/lib/firebase';
-import {collection, addDoc, getDocs, deleteDoc, doc, updateDoc} from 'firebase/firestore';
-import {
-  getSiteContent,
-  getSiteSettings,
-  getMessages,
-  updateSiteContent,
-  updateSiteSettings,
-  toggleMessageRead,
-  deleteMessage,
-  getTestimonials,
-  deleteTestimonial,
-  getServiceItems,
-  addServiceItem,
-  updateServiceItem,
-  deleteServiceItem,
-  PortfolioItem,
-  ServiceItem,
-  SiteContent,
-  SiteSettings,
-  ContactMessage,
-  Testimonial
-} from '@/lib/firestore';
-
+import {useSession, signOut} from 'next-auth/react';
 import {useRouter} from 'next/navigation';
+
+interface PortfolioItem {
+  id: string;
+  title: string;
+  titleAr?: string;
+  description: string;
+  descriptionAr?: string;
+  imageUrl: string;
+  galleryImages?: string[];
+  link: string;
+  tags: string[];
+  order?: number;
+}
+
+interface ServiceItem {
+  id: string;
+  icon: string;
+  titleEn: string;
+  titleAr: string;
+  descEn: string;
+  descAr: string;
+  order?: number;
+}
+
+interface SiteContent {
+  hero?: any;
+  about?: any;
+  services?: any;
+  contact?: any;
+  footer?: any;
+}
+
+interface SiteSettings {
+  general?: any;
+  stats?: any;
+  socials?: any;
+}
+
+interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  message: string;
+  createdAt: any;
+  read: boolean;
+}
+
+interface Testimonial {
+  id: string;
+  name: string;
+  message: string;
+  rating: number;
+  createdAt: any;
+}
 import styles from './dashboard.module.css';
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [, setUser] = useState<User | null>(null);
+  const {data: session, status} = useSession();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'portfolio' | 'pages' | 'settings' | 'messages' | 'reviews'>('portfolio');
   
@@ -67,22 +97,14 @@ export default function AdminDashboard() {
   const [showDetail, setShowDetail] = useState(false);
 
   useEffect(() => {
-    if (!auth) {
-      setLoading(false);
+    if (status === 'loading') return;
+    if (!session) {
+      router.push('/admin/login');
       return;
     }
-    const unsub = onAuthStateChanged(auth, (u) => {
-      if (u) {
-        // Only fetch if we transitioning from no user
-        setUser(u);
-        fetchAllData();
-      } else {
-        router.push('/admin/login');
-      }
-      setLoading(false);
-    });
-    return () => unsub();
-  }, []); // router is stable, auth state change is our trigger
+    fetchAllData();
+    setLoading(false);
+  }, [session, status, router]);
 
   const fetchAllData = async () => {
     await Promise.all([
@@ -96,13 +118,9 @@ export default function AdminDashboard() {
   };
 
   const fetchProjects = async () => {
-    if (!db) return;
     try {
-      const snap = await getDocs(collection(db, 'portfolio'));
-      const items: PortfolioItem[] = snap.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-      })) as PortfolioItem[];
+      const res = await fetch('/api/portfolio');
+      const items = await res.json();
       setProjects(items);
     } catch (err) {
       console.error('Error fetching projects:', err);
@@ -110,49 +128,62 @@ export default function AdminDashboard() {
   };
 
   const fetchContent = async () => {
-    const data = await getSiteContent();
+    const res = await fetch('/api/content');
+    const data = await res.json();
     if (data) setContent(data);
   };
 
   const fetchSettings = async () => {
-    const data = await getSiteSettings();
+    const res = await fetch('/api/settings');
+    const data = await res.json();
     if (data) setSettings(data);
   };
 
   const fetchMessages = async () => {
-    const data = await getMessages();
+    const res = await fetch('/api/messages');
+    const data = await res.json();
     setMessages(data);
   };
 
   const fetchTestimonials = async () => {
-    const data = await getTestimonials();
+    const res = await fetch('/api/testimonials');
+    const data = await res.json();
     setTestimonials(data);
   };
 
   const handleDeleteTestimonial = async (id: string) => {
     if (!confirm('Delete this testimonial?')) return;
-    const success = await deleteTestimonial(id);
-    if (success) fetchTestimonials();
+    try {
+      await fetch('/api/testimonials', { method: 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id }) });
+      fetchTestimonials();
+    } catch (err) {
+      console.error('Error deleting testimonial:', err);
+    }
   };
 
   const fetchServices = async () => {
-    const data = await getServiceItems();
+    const res = await fetch('/api/services');
+    const data = await res.json();
     setServiceItems(data);
   };
 
   const handleDeleteService = async (id: string) => {
     if (!confirm('Delete this service?')) return;
-    const success = await deleteServiceItem(id);
-    if (success) fetchServices();
+    try {
+      await fetch('/api/services', { method: 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id }) });
+      fetchServices();
+    } catch (err) {
+      console.error('Error deleting service:', err);
+    }
   };
 
   const handleServiceSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSaving(true);
     if (editingServiceId) {
-      await updateServiceItem(editingServiceId, serviceForm);
+      await fetch('/api/services', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: editingServiceId, ...serviceForm }) });
     } else {
-      await addServiceItem(serviceForm);
+      await fetch('/api/services', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(serviceForm) });
     }
     setSaving(false);
     setShowServiceForm(false);
@@ -163,7 +194,6 @@ export default function AdminDashboard() {
 
   const handlePortfolioSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!db) return;
 
     const data = {
       title: form.title,
@@ -179,9 +209,9 @@ export default function AdminDashboard() {
 
     try {
       if (editingId) {
-        await updateDoc(doc(db, 'portfolio', editingId), data);
+        await fetch('/api/portfolio', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: editingId, ...data }) });
       } else {
-        await addDoc(collection(db, 'portfolio'), data);
+        await fetch('/api/portfolio', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
       }
       setForm({title: '', titleAr: '', description: '', descriptionAr: '', link: '', tags: '', imageUrl: '', galleryImages: [], order: 0});
       setShowForm(false);
@@ -240,10 +270,9 @@ export default function AdminDashboard() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!db) return;
     if (!confirm('Are you sure you want to delete this project?')) return;
     try {
-      await deleteDoc(doc(db, 'portfolio', id));
+      await fetch('/api/portfolio', { method: 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id }) });
       fetchProjects();
     } catch (err) {
       console.error('Error deleting:', err);
@@ -268,35 +297,48 @@ export default function AdminDashboard() {
 
   const handleSaveContent = async (section: string, data: any) => {
     setSaving(true);
-    const success = await updateSiteContent(section, data);
-    if (success) fetchContent();
+    try {
+      await fetch('/api/content', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ section, data }) });
+      fetchContent();
+    } catch (err) {
+      console.error('Error saving content:', err);
+    }
     setSaving(false);
   };
 
   const handleSaveSettings = async (section: string, data: any) => {
     setSaving(true);
-    const success = await updateSiteSettings(section, data);
-    if (success) fetchSettings();
+    try {
+      await fetch('/api/settings', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ section, data }) });
+      fetchSettings();
+    } catch (err) {
+      console.error('Error saving settings:', err);
+    }
     setSaving(false);
   };
 
   const handleToggleRead = async (id: string, read: boolean) => {
-    const success = await toggleMessageRead(id, read);
-    if (success) fetchMessages();
+    try {
+      await fetch('/api/messages', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id, read }) });
+      fetchMessages();
+    } catch (err) {
+      console.error('Error toggling message read:', err);
+    }
   };
 
   const handleDeleteMessage = async (id: string) => {
     if (!confirm('Delete this message?')) return;
-    const success = await deleteMessage(id);
-    if (success) {
+    try {
+      await fetch('/api/messages', { method: 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id }) });
       fetchMessages();
       setSelectedMessage(null);
+    } catch (err) {
+      console.error('Error deleting message:', err);
     }
   };
 
   const handleLogout = async () => {
-    if (!auth) return;
-    await signOut(auth);
+    await signOut();
     router.push('/admin/login');
   };
 
@@ -304,25 +346,6 @@ export default function AdminDashboard() {
     return (
       <div className={styles.loadingPage}>
         <div className={styles.spinner}></div>
-      </div>
-    );
-  }
-
-  if (!isFirebaseInitialized()) {
-    return (
-      <div className={styles.page}>
-        <div className={styles.noFirebase}>
-          <h2>⚠️ Firebase Not Configured</h2>
-          <p>Please add your Firebase credentials to the <code>.env.local</code> file to enable the admin panel.</p>
-          <div className={styles.codeHint}>
-            <pre>{`NEXT_PUBLIC_FIREBASE_API_KEY="your-key"
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your-domain"
-NEXT_PUBLIC_FIREBASE_PROJECT_ID="your-project-id"
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your-bucket"
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="your-sender-id"
-NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
-          </div>
-        </div>
       </div>
     );
   }
@@ -1119,7 +1142,7 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
                     <div className={styles.msgHead}>
                       <span className={styles.msgName}>{msg.name}</span>
                       <span className={styles.msgDate}>
-                        {msg.createdAt ? new Date(msg.createdAt.seconds * 1000).toLocaleDateString() : 'Just now'}
+                        {msg.createdAt ? new Date(msg.createdAt).toLocaleDateString() : 'Just now'}
                       </span>
                     </div>
                     <p className={styles.msgPreview}>{msg.message}</p>
@@ -1186,7 +1209,7 @@ NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"`}</pre>
                     </div>
                     <p className={styles.reviewMessage}>{review.message}</p>
                     <span className={styles.reviewDate}>
-                      {review.createdAt ? new Date(review.createdAt.seconds * 1000).toLocaleDateString() : 'Just now'}
+                      {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : 'Just now'}
                     </span>
                   </div>
                 ))
