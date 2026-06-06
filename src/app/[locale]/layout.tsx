@@ -5,7 +5,7 @@ import {notFound} from 'next/navigation';
 export const dynamic = 'force-dynamic';
 import Navbar from '@/components/Navbar/Navbar';
 import '../globals.css';
-import {getSiteSettings} from '@/lib/firestore';
+import {prisma} from '@/lib/prisma';
 import {Metadata} from 'next';
 import {NextIntlClientProvider} from 'next-intl';
 
@@ -15,7 +15,12 @@ export function generateStaticParams() {
 
 export async function generateMetadata({params}: {params: Promise<{locale: string}>}): Promise<Metadata> {
   const {locale} = await params;
-  const settings = await getSiteSettings();
+  const settingsRaw = await prisma.siteSettings.findMany();
+  const settings = settingsRaw.length > 0 ? {
+    general: settingsRaw[0].general as any,
+    stats: settingsRaw[0].stats as any,
+    socials: settingsRaw[0].socials as any,
+  } : null;
   
   const siteName = locale === 'ar' 
     ? (settings?.general?.siteNameAr || 'تيكنيكال فايب')
@@ -46,7 +51,12 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
 
   const messages = await getMessages();
-  const settings = await getSiteSettings();
+  const settingsRaw = await prisma.siteSettings.findMany();
+  const settings = settingsRaw.length > 0 ? {
+    general: settingsRaw[0].general as any,
+    stats: settingsRaw[0].stats as any,
+    socials: settingsRaw[0].socials as any,
+  } : null;
 
   // Set text direction based on locale
   const dir = locale === 'ar' ? 'rtl' : 'ltr';

@@ -8,7 +8,7 @@ import Contact from '@/components/Contact/Contact';
 import Testimonials from '@/components/Testimonials/Testimonials';
 import Footer from '@/components/Footer/Footer';
 import ParticlesBg from '@/components/ParticlesBg/ParticlesBg';
-import {getPortfolioItems, getSiteContent, getSiteSettings, getTestimonials, getServiceItems} from '@/lib/firestore';
+import {prisma} from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,14 +25,36 @@ export default async function HomePage({params}: {params: Promise<{locale: strin
   const tFooter = await getTranslations('Footer');
   const tNav = await getTranslations('Navigation');
 
-  // Fetch all data from Firestore
-  const [portfolioItems, siteContent, siteSettings, testimonials, dbServices] = await Promise.all([
-    getPortfolioItems(),
-    getSiteContent(),
-    getSiteSettings(),
-    getTestimonials(),
-    getServiceItems()
+  // Fetch all data from Prisma
+  const [portfolioItemsRaw, siteContentRaw, siteSettingsRaw, testimonials, dbServices] = await Promise.all([
+    prisma.portfolioItem.findMany({ orderBy: { order: 'asc' } }),
+    prisma.siteContent.findMany(),
+    prisma.siteSettings.findMany(),
+    prisma.testimonial.findMany({ orderBy: { createdAt: 'desc' } }),
+    prisma.serviceItem.findMany({ orderBy: { order: 'asc' } })
   ]);
+
+  // Transform Prisma null to undefined for optional fields
+  const portfolioItems = portfolioItemsRaw.map((item: any) => ({
+    ...item,
+    titleAr: item.titleAr ?? undefined,
+    descriptionAr: item.descriptionAr ?? undefined,
+  }));
+
+  // Transform Prisma results to match expected structure
+  const siteContent = siteContentRaw.length > 0 ? {
+    hero: siteContentRaw[0].hero as any,
+    about: siteContentRaw[0].about as any,
+    services: siteContentRaw[0].services as any,
+    contact: siteContentRaw[0].contact as any,
+    footer: siteContentRaw[0].footer as any,
+  } : null;
+
+  const siteSettings = siteSettingsRaw.length > 0 ? {
+    general: siteSettingsRaw[0].general as any,
+    stats: siteSettingsRaw[0].stats as any,
+    socials: siteSettingsRaw[0].socials as any,
+  } : null;
 
   // Merge Firestore content with translations (Firestore overrides translations)
   const isAr = locale === 'ar';

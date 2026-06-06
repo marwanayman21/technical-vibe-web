@@ -1,5 +1,5 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
-import {getPortfolioItem} from '@/lib/firestore';
+import {prisma} from '@/lib/prisma';
 import styles from './projects.module.css';
 import Link from 'next/link';
 import ParticlesBg from '@/components/ParticlesBg/ParticlesBg';
@@ -13,7 +13,7 @@ export default async function ProjectPage({
   const {id, locale} = await params;
   setRequestLocale(locale);
 
-  const project = await getPortfolioItem(id);
+  const project = await prisma.portfolioItem.findUnique({ where: { id } });
   if (!project) {
     notFound();
   }
