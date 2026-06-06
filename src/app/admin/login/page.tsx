@@ -1,9 +1,8 @@
 'use client';
 
-import {useState} from 'react';
-import {signInWithEmailAndPassword} from 'firebase/auth';
-import {auth} from '@/lib/firebase';
-import {useRouter} from 'next/navigation';
+import { useState } from 'react';
+import { signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import styles from './login.module.css';
 
 export default function AdminLogin() {
@@ -19,15 +18,19 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
-      if (!auth) {
-        setError('Firebase is not configured. Please add your Firebase credentials to .env.local');
-        setLoading(false);
-        return;
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError('Invalid email or password');
+      } else {
+        router.push('/admin/dashboard');
       }
-      await signInWithEmailAndPassword(auth, email, password);
-      router.push('/admin/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+      setError(err.message || 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -44,7 +47,7 @@ export default function AdminLogin() {
 
         <form onSubmit={handleLogin} className={styles.form}>
           {error && <div className={styles.error}>{error}</div>}
-          
+
           <div className={styles.field}>
             <label className={styles.label}>Email</label>
             <input

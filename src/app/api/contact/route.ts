@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { submitMessage } from '@/lib/firestore';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,11 +10,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const success = await submitMessage({ name, email, message });
-
-    if (!success) {
-      throw new Error('Failed to save message to database');
-    }
+    await prisma.message.create({ data: { name, email, message } });
 
     return NextResponse.json({ success: true, message: 'Message sent successfully' });
   } catch (error: any) {
