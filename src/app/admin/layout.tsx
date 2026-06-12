@@ -1,4 +1,5 @@
 import '../globals.css';
+import AuthProvider from '@/components/AuthProvider';
 
 export const metadata = {
   title: 'Admin Panel | Technical Vibe',
@@ -8,7 +9,11 @@ export const metadata = {
 export default function AdminLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </body>
     </html>
   );
 }

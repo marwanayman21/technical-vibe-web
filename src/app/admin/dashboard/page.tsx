@@ -234,14 +234,20 @@ export default function AdminDashboard() {
       });
 
       if (!res.ok) {
-        throw new Error('Upload failed');
+        let errMsg = 'Upload failed';
+        try {
+          const errData = await res.json();
+          if (errData && errData.error) errMsg = errData.error;
+        } catch (_) {}
+        throw new Error(errMsg);
       }
 
       const data = await res.json();
       setUploading(false);
       return data.url;
-    } catch (err) {
+    } catch (err: any) {
       console.error('Upload error:', err);
+      alert(`Upload error: ${err.message || err}`);
       setUploading(false);
       return '';
     }

@@ -6,6 +6,7 @@ const withNextIntl = createNextIntlPlugin();
 const nextConfig: NextConfig = {
   output: 'standalone',
   devIndicators: false,
+  serverExternalPackages: ["@prisma/client"],
 };
 
 export default withNextIntl(nextConfig);
