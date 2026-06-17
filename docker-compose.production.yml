@@ -1,37 +1,45 @@
 services:
-  db:
+  postgres:
     image: postgres:18-alpine
-    restart: unless-stopped
+    container_name: technical-vibe-postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_DB: technical_vibe
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: technical_vibe
+    ports:
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "127.0.0.1:5433:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d technical_vibe"]
       interval: 10s
-      timeout: 5s
-      retries: 5
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - technical-vibe-internal
 
   app:
     image: ${APP_IMAGE}
-    restart: unless-stopped
+    container_name: technical-vibe-app
     environment:
-      DATABASE_URL: postgresql://postgres:${DB_PASSWORD}@db:5432/technical_vibe?schema=public
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD}@postgres:5432/technical_vibe?schema=public
       NEXTAUTH_SECRET: ${JWT_SECRET}
       NEXTAUTH_URL: ${NEXTAUTH_URL}
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
     depends_on:
-      db:
+      postgres:
         condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - technical-vibe-internal
 
   nginx:
     image: nginx:alpine
+    container_name: technical-vibe-nginx
     restart: unless-stopped
     ports:
       - "80:80"
@@ -41,6 +49,13 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
       - app
+    networks:
+      - technical-vibe-internal
+
+networks:
+  technical-vibe-internal:
+    driver: bridge
+    name: technical-vibe-network
 
 volumes:
   postgres_data:
