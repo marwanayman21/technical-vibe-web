@@ -105,14 +105,14 @@ jobs:
 
             # 2. Write environment variables for Docker Compose
             cat > .env << 'ENVEOF'
-            APP_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_LOWER }}:latest
-            DB_PASSWORD='${{ secrets.DB_PASSWORD }}'
-            JWT_SECRET='${{ secrets.JWT_SECRET }}'
-            NEXTAUTH_URL='${{ secrets.NEXTAUTH_URL }}'
-            CLOUDINARY_CLOUD_NAME='${{ secrets.CLOUDINARY_CLOUD_NAME }}'
-            CLOUDINARY_API_KEY='${{ secrets.CLOUDINARY_API_KEY }}'
-            CLOUDINARY_API_SECRET='${{ secrets.CLOUDINARY_API_SECRET }}'
-            ENVEOF
+APP_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_LOWER }}:latest
+DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+JWT_SECRET=${{ secrets.JWT_SECRET }}
+NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}
+CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+ENVEOF
 
             # 3. Pull new images from GHCR
             echo "${{ secrets.GITHUB_TOKEN }}" | sudo docker login ghcr.io -u ${{ github.actor }} --password-stdin

@@ -3,6 +3,7 @@ services:
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
+      POSTGRES_USER: postgres
       POSTGRES_DB: technical_vibe
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
@@ -17,7 +18,6 @@ services:
 
   app:
     image: ${APP_IMAGE}
-    build: .
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://postgres:${DB_PASSWORD}@db:5432/technical_vibe?schema=public
