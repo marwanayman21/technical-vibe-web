@@ -233,7 +233,7 @@ server {
 
 server {
     listen 443 ssl;
-    server_name elcapitano.technicalsvibes.com elcapitanoac.technicalsvibes.com;
+    server_name elcapitano.technicalsvibes.com;
     include snippets/ssl-params.conf;
     include snippets/cloudflare-ips.conf;
 
