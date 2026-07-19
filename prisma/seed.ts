@@ -14,7 +14,7 @@ async function main() {
   const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin123', 12);
   await prisma.user.upsert({
     where: { email: process.env.ADMIN_EMAIL || 'admin@technicalvibe.com' },
-    update: {},
+    update: { hashedPassword },
     create: {
       email: process.env.ADMIN_EMAIL || 'admin@technicalvibe.com',
       hashedPassword,
@@ -22,7 +22,7 @@ async function main() {
       role: 'admin',
     },
   });
-  console.log('✓ Admin user created');
+  console.log('✓ Admin user created/updated');
 
   // 2. Seed services (from existing migrateServices.mjs)
   const services = [
