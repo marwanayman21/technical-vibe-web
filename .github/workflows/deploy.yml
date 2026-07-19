@@ -164,4 +164,112 @@ jobs:
               exit 1
             fi
 
+            # 8. Update host Nginx configuration for Security Headers & ElCapitano AC subdomain
+            echo "🔒 Updating Host Nginx Configuration..."
+            sudo tee /etc/nginx/sites-available/technicalsvibes.conf << 'NGINXEOF'
+server {
+    listen 80;
+    server_name technicalsvibes.com www.technicalsvibes.com 
+                *.technicalsvibes.com *.fbacademy.technicalsvibes.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name technicalsvibes.com www.technicalsvibes.com;
+    include snippets/ssl-params.conf;
+    include snippets/cloudflare-ips.conf;
+    
+    # Security Headers
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline' 'unsafe-eval' *.cloudinary.com;" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    location / {
+        include snippets/proxy-params.conf;
+        proxy_pass http://127.0.0.1:8083;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name fbacademy.technicalsvibes.com *.fbacademy.technicalsvibes.com;
+    include snippets/ssl-params.conf;
+    include snippets/cloudflare-ips.conf;
+
+    # Security Headers
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline' 'unsafe-eval' *.cloudinary.com;" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    location / {
+        include snippets/proxy-params.conf;
+        proxy_pass http://127.0.0.1:8082;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name irs.technicalsvibes.com;
+    include snippets/ssl-params.conf;
+    include snippets/cloudflare-ips.conf;
+
+    # Security Headers
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline' 'unsafe-eval' *.cloudinary.com;" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    location / {
+        include snippets/proxy-params.conf;
+        proxy_pass http://127.0.0.1:8081;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name elcapitano.technicalsvibes.com elcapitanoac.technicalsvibes.com;
+    include snippets/ssl-params.conf;
+    include snippets/cloudflare-ips.conf;
+
+    # Security Headers
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline' 'unsafe-eval' *.cloudinary.com;" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    location / {
+        include snippets/proxy-params.conf;
+        proxy_pass http://127.0.0.1:5004;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name remontada.technicalsvibes.com;
+    include snippets/ssl-params.conf;
+    include snippets/cloudflare-ips.conf;
+
+    # Security Headers
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline' 'unsafe-eval' *.cloudinary.com;" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    location / {
+        include snippets/proxy-params.conf;
+        proxy_pass http://127.0.0.1:5002;
+    }
+}
+NGINXEOF
+            sudo nginx -t
+            sudo systemctl reload nginx
+
             echo "🚀 TechnicalVibe Deployed Successfully!"
