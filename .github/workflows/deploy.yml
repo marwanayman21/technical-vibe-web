@@ -140,7 +140,7 @@ jobs:
             sleep 15
             
             HEALTHY=true
-            for container in technical-vibe-db technical-vibe-app technical-vibe-nginx; do
+            for container in technical-vibe-postgres technical-vibe-app technical-vibe-nginx; do
               STATUS=$(sudo docker inspect --format='{{.State.Health.Status}}' $container 2>/dev/null || echo "not found")
               if [ "$STATUS" != "healthy" ] && [ "$STATUS" != "running" ]; then
                 echo "⚠️ $container is $STATUS"
