@@ -152,7 +152,9 @@ jobs:
             done
             
             if [ "$HEALTHY" = false ]; then
-              echo "❌ Health check failed! Rolling back..."
+              echo "❌ Health check failed! Printing container logs..."
+              sudo docker logs technical-vibe-app || true
+              echo "❌ Rolling back..."
               if [ -n "$OLD_APP" ]; then
                 $DOCKER_COMPOSE -f docker-compose.production.yml down
                 $DOCKER_COMPOSE -f docker-compose.production.yml up -d
