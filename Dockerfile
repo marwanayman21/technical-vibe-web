@@ -13,6 +13,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate
+RUN npx tsc prisma/seed.ts --module commonjs --esModuleInterop --target es2022 --outDir dist-seed
 RUN npm run build
 
 # Production image, copy all the files and run next
@@ -33,6 +34,8 @@ RUN chown nextjs:nodejs .next
 # Automatically leverage output traces to reduce image size
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/dist-seed ./dist-seed
 
 USER nextjs
 
@@ -40,4 +43,4 @@ EXPOSE 3000
 
 ENV PORT 3000
 
-CMD ["node", "server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed && node server.js"]
